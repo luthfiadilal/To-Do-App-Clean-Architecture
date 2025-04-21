@@ -1,0 +1,42 @@
+package com.example.core.data.repository
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.example.core.data.local.TaskDao
+import com.example.core.data.mapper.toDomain
+import com.example.core.data.mapper.toEntity
+import java.util.concurrent.Executors
+
+
+class TaskRepositoryImpl(private val dao: TaskDao) :
+    com.example.core.domain.repository.TaskRepository {
+
+    private val executor = Executors.newSingleThreadExecutor()
+
+    override fun getTasks(): LiveData<List<com.example.core.domain.model.Task>> {
+        val liveData = dao.getTasks()
+        val result = MutableLiveData<List<com.example.core.domain.model.Task>>()
+        liveData.observeForever { taskEntities ->
+            result.postValue(taskEntities.map { it.toDomain() })
+        }
+        return result
+    }
+
+    override fun addTask(task: com.example.core.domain.model.Task) {
+        executor.execute {
+            dao.insertTask(task.toEntity())
+        }
+    }
+
+    override fun deleteTask(task: com.example.core.domain.model.Task) {
+        executor.execute {
+            dao.deleteTask(task.toEntity())
+        }
+    }
+
+    override fun updateTask(task: com.example.core.domain.model.Task) {
+        executor.execute {
+            dao.updateTask(task.toEntity())
+        }
+    }
+}
